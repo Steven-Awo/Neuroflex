@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 
+// Middleware to protect routes
 const protect = (req, res, next) => {
     const token = req.header("Authorization")?.split(" ")[1];
 
@@ -9,18 +10,21 @@ const protect = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
+        req.user = decoded; // Attach user info (id, role) to req object
         next();
     } catch (err) {
         res.status(401).json({ message: "Invalid Token" });
     }
 };
 
-const adminOnly = (req, res, next) => {
-    if (req.user.role !== "admin") {
-        return res.status(403).json({ message: "Access Denied: Admins Only" });
-    }
-    next();
+// Middleware to allow only specific roles
+const authorizeRoles = (...roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ message: "Access Denied: Insufficient Permissions" });
+        }
+        next();
+    };
 };
 
-module.exports = { protect, adminOnly };
+module.exports = { protect, authorizeRoles };
