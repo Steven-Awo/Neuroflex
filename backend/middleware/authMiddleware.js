@@ -17,7 +17,7 @@ const protect = (req, res, next) => {
     }
 };
 
-// Middleware to allow only specific roles
+// Middleware to allow only specific roless
 const authorizeRoles = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {
