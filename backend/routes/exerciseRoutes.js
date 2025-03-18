@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Exercise = require("../models/Exercise");
-const { protect } = require("../middlewares/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 
 // 📌 Add a new exercise session (Protected Route)
 router.post("/add", protect, async (req, res) => {
@@ -49,5 +49,20 @@ router.put("/update/:id", protect, async (req, res) => {
         res.status(500).json({ message: "Server Error", error: err.message });
     }
 });
+
+// 📌 Therapists can view all patients' exercises
+router.get("/patients", protect, async (req, res) => {
+    if (req.user.role !== "therapist") {
+        return res.status(403).json({ message: "Access Denied: Therapists Only" });
+    }
+
+    try {
+        const exercises = await Exercise.find().populate("userId", "name email");
+        res.json(exercises);
+    } catch (err) {
+        res.status(500).json({ message: "Server Error", error: err.message });
+    }
+});
+
 
 module.exports = router;
