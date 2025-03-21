@@ -27,4 +27,9 @@ const authorizeRoles = (...roles) => {
     };
 };
 
-module.exports = { protect, authorizeRoles };
+// Specific middleware for admin and therapist
+const adminOnly = authorizeRoles("admin");
+const therapistOnly = authorizeRoles("therapist");
+
+// ✅ Ensure all functions are exported correctly
+module.exports = { protect, authorizeRoles, adminOnly, therapistOnly };
