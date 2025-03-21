@@ -1,53 +1,68 @@
 const express = require("express");
 const router = express.Router();
-const Exercise = require("../models/Exercise");
-const { protect } = require("../middlewares/authMiddleware");
+const { protect, adminOnly, therapistOnly } = require("../middleware/authMiddleware");
 
-// 📌 Add a new exercise session (Protected Route)
-router.post("/add", protect, async (req, res) => {
-    const { exerciseName, repetitions } = req.body;
+const {
+    createExercise,
+    deleteExercise,
+    getAllExercises,
+    selectExercise,
+    getUserExercises,
+    updateExerciseProgress,
+    recommendExercise,             // ✅ Add this
+    getRecommendationsForUser,     // ✅ Add this too
+    assignExerciseToUser,  // ✅ NEW: Therapists can assign exercises to users
+    getAssignedExercises   // ✅ NEW: Users can view their assigned exercises
+} = require("../controllers/exerciseController");
 
-    try {
-        const exercise = new Exercise({
-            userId: req.user.id,
-            exerciseName,
-            repetitions
-        });
+// ===============================
+// 🔹 ADMIN ROUTES (Only Admins)
+// ===============================
 
-        await exercise.save();
-        res.json({ message: "Exercise recorded", exercise });
-    } catch (err) {
-        res.status(500).json({ message: "Server Error", error: err.message });
-    }
-});
+// 🟢 Admin creates an exercise
+router.post("/create", protect, adminOnly, createExercise);
 
-// 📌 Get user’s exercise history
-router.get("/history", protect, async (req, res) => {
-    try {
-        const exercises = await Exercise.find({ userId: req.user.id });
-        res.json(exercises);
-    } catch (err) {
-        res.status(500).json({ message: "Server Error", error: err.message });
-    }
-});
+// 🟢 Admin deletes an exercise
+router.delete("/:id", protect, adminOnly, deleteExercise);
 
-// 📌 Update exercise progress
-router.put("/update/:id", protect, async (req, res) => {
-    try {
-        const exercise = await Exercise.findById(req.params.id);
+// ===============================
+// 🔹 PUBLIC ROUTES (Accessible to All Users)
+// ===============================
 
-        if (!exercise) {
-            return res.status(404).json({ message: "Exercise not found" });
-        }
+// 🟢 Get all exercises (authentication required)
+router.get("/", protect, getAllExercises);
 
-        exercise.progress = req.body.progress || exercise.progress;
-        exercise.therapistNotes = req.body.therapistNotes || exercise.therapistNotes;
+// ===============================
+// 🔹 USER ROUTES (Only Authenticated Users)
+// ===============================
 
-        await exercise.save();
-        res.json({ message: "Exercise updated", exercise });
-    } catch (err) {
-        res.status(500).json({ message: "Server Error", error: err.message });
-    }
-});
+// 🟢 User selects an exercise
+router.post("/select", protect, selectExercise);
+
+// 🟢 User views their selected exercises
+router.get("/user", protect, getUserExercises);
+
+// 🟢 User updates progress
+router.put("/progress", protect, updateExerciseProgress);
+
+// 🟢 User views assigned exercises
+router.get("/assigned", protect, getAssignedExercises);
+
+// ===============================
+// 🔹 THERAPIST ROUTES (Only Therapists)
+// ===============================
+
+// 🟢 Therapist recommends an exercise
+router.post("/recommend", protect, therapistOnly, recommendExercise);
+
+// 🟢 Therapist assigns exercises to a user
+router.post("/assign", protect, therapistOnly, assignExerciseToUser);
+
+
+
+
+// ✅ Get recommendations for a user (used by AI or patient)
+router.get("/recommendations/:userId", protect, getRecommendationsForUser);
+
 
 module.exports = router;

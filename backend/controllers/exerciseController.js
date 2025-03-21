@@ -1,0 +1,236 @@
+const Exercise = require("../models/Exercise");
+const UserExercise = require("../models/UserExercise");
+const TherapistRecommendation = require("../models/TherapistRecommendation");
+const User = require("../models/User");
+
+
+// 🟢 Admin creates a new exercise
+const createExercise = async (req, res) => {
+    try {
+        const { name, description, category, difficulty, videoUrl } = req.body;
+
+        const newExercise = new Exercise({
+            name,
+            description,
+            category,
+            difficulty,
+            videoUrl,
+            createdBy: req.user.id
+        });
+
+        await newExercise.save();
+        res.status(201).json({ message: "Exercise created successfully", exercise: newExercise });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// 🟢 Admin deletes an exercise
+const deleteExercise = async (req, res) => {
+    try {
+        const exercise = await Exercise.findById(req.params.id);
+        if (!exercise) {
+            return res.status(404).json({ message: "Exercise not found" });
+        }
+        await exercise.deleteOne();
+        res.status(200).json({ message: "Exercise deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// 🟢 Get all exercises
+const getAllExercises = async (req, res) => {
+    try {
+        const exercises = await Exercise.find();
+        res.status(200).json(exercises);
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// 🟢 User selects an exercise
+const selectExercise = async (req, res) => {
+    try {
+        const { exerciseId } = req.body;
+        const userId = req.user.id;
+
+        let userExercises = await UserExercise.findOne({ userId });
+
+        if (!userExercises) {
+            userExercises = new UserExercise({ userId, exercises: [exerciseId] });
+        } else {
+            if (userExercises.exercises.includes(exerciseId)) {
+                return res.status(400).json({ message: "Exercise already added to your list." });
+            }
+            userExercises.exercises.push(exerciseId);
+        }
+
+        await userExercises.save();
+        res.status(200).json({ message: "Exercise added to your list", userExercises });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// 🟢 Get user-selected exercises
+const getUserExercises = async (req, res) => {
+    try {
+        const userExercises = await UserExercise.findOne({ userId: req.user.id }).populate("exercises");
+
+        if (!userExercises) {
+            return res.status(200).json({ exercises: [] });
+        }
+
+        res.status(200).json(userExercises.exercises);
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// 🟢 User updates exercise progress
+const updateExerciseProgress = async (req, res) => {
+    try {
+        const { exerciseId, completedReps, completedSets } = req.body;
+        const userId = req.user.id;
+
+        let userExercises = await UserExercise.findOne({ userId });
+
+        if (!userExercises) {
+            return res.status(404).json({ message: "User exercise record not found" });
+        }
+
+        // Find the exercise progress entry
+        let exerciseProgress = userExercises.progress.find(p => p.exerciseId.toString() === exerciseId);
+
+        if (!exerciseProgress) {
+            // If progress doesn't exist, create it
+            userExercises.progress.push({ exerciseId, completedReps, completedSets });
+        } else {
+            // Update existing progress
+            exerciseProgress.completedReps = completedReps;
+            exerciseProgress.completedSets = completedSets;
+            exerciseProgress.lastUpdated = Date.now();
+        }
+
+        await userExercises.save();
+        res.status(200).json({ message: "Progress updated successfully", userExercises });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+
+
+// 🧠 Get recommendations for a specific user
+const getRecommendationsForUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const recommendations = await TherapistRecommendation
+            .findOne({ patientId: userId })
+            .populate("exercises");
+
+        if (!recommendations) {
+            return res.status(200).json({ exercises: [] });
+        }
+
+        res.status(200).json({ exercises: recommendations.exercises });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+
+
+// 🟢 Therapist recommends an exercise to a user ✅ FIXED
+const recommendExercise = async (req, res) => {
+    try {
+        const { patientId, exerciseId } = req.body;
+
+        const existingExercise = await Exercise.findById(exerciseId);
+        if (!existingExercise) {
+            return res.status(404).json({ message: "Exercise not found" });
+        }
+
+        let recommendation = await TherapistRecommendation.findOne({ therapistId: req.user.id, patientId });
+
+        if (!recommendation) {
+            recommendation = new TherapistRecommendation({ therapistId: req.user.id, patientId, exercises: [exerciseId] });
+        } else {
+            if (!recommendation.exercises.includes(exerciseId)) {
+                recommendation.exercises.push(exerciseId);
+            }
+        }
+
+        await recommendation.save();
+        res.status(200).json({ message: "Exercise recommended successfully", recommendation });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// 🟢 Therapist assigns exercises to a user
+const assignExerciseToUser = async (req, res) => {
+    try {
+        const { patientId, exerciseIds } = req.body;
+
+        if (req.user.role !== "therapist") {
+            return res.status(403).json({ message: "Access Denied: Only therapists can assign exercises" });
+        }
+
+        // Ensure patient exists
+        const patient = await User.findById(patientId);
+        if (!patient) {
+            return res.status(404).json({ message: "Patient not found" });
+        }
+
+        let recommendation = await TherapistRecommendation.findOne({ therapistId: req.user.id, patientId });
+
+        if (!recommendation) {
+            recommendation = new TherapistRecommendation({
+                therapistId: req.user.id,
+                patientId,
+                exercises: exerciseIds,
+            });
+        } else {
+            recommendation.exercises = [...new Set([...recommendation.exercises, ...exerciseIds])];
+        }
+
+        await recommendation.save();
+
+        res.status(200).json({ message: "Exercises assigned successfully", recommendation });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// 🟢 Get exercises assigned to a user
+const getAssignedExercises = async (req, res) => {
+    try {
+        const assignedExercises = await TherapistRecommendation.findOne({ patientId: req.user.id })
+            .populate("exercises");
+
+        if (!assignedExercises) {
+            return res.status(200).json({ exercises: [] });
+        }
+
+        res.status(200).json(assignedExercises.exercises);
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// 🟢 Export all functions correctly
+module.exports = {
+    createExercise,
+    deleteExercise,
+    getAllExercises,
+    selectExercise,
+    getUserExercises,
+    updateExerciseProgress,
+    recommendExercise,
+    getRecommendationsForUser,
+    assignExerciseToUser,
+    getAssignedExercises
+};

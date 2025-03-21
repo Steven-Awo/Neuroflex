@@ -17,7 +17,7 @@ const protect = (req, res, next) => {
     }
 };
 
-// Middleware to allow only specific roless
+// Middleware to allow only specific roles
 const authorizeRoles = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {
@@ -27,4 +27,9 @@ const authorizeRoles = (...roles) => {
     };
 };
 
-module.exports = { protect, authorizeRoles };
+// Specific middleware for admin and therapist
+const adminOnly = authorizeRoles("admin");
+const therapistOnly = authorizeRoles("therapist");
+
+// ✅ Ensure all functions are exported correctly
+module.exports = { protect, authorizeRoles, adminOnly, therapistOnly };
