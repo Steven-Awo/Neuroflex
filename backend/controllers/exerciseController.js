@@ -188,8 +188,8 @@ const assignExerciseToUser = async (req, res) => {
     try {
         const { patientId, exerciseIds } = req.body;
 
-        console.log("Received patientId:", patientId);
-        console.log("Received exerciseIds:", exerciseIds);
+        // console.log("Received patientId:", patientId);
+        // console.log("Received exerciseIds:", exerciseIds);
 
         // Validate patientId format
         if (!mongoose.Types.ObjectId.isValid(patientId)) {
