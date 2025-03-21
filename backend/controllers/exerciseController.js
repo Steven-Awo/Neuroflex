@@ -2,7 +2,7 @@ const Exercise = require("../models/Exercise");
 const UserExercise = require("../models/UserExercise");
 const TherapistRecommendation = require("../models/TherapistRecommendation");
 const User = require("../models/User");
-
+const mongoose = require("mongoose"); // Make sure this is at the top
 
 // 🟢 Admin creates a new exercise
 const createExercise = async (req, res) => {
@@ -89,28 +89,40 @@ const getUserExercises = async (req, res) => {
 };
 
 // 🟢 User updates exercise progress
+// 🟢 User updates exercise progress
 const updateExerciseProgress = async (req, res) => {
     try {
         const { exerciseId, completedReps, completedSets } = req.body;
         const userId = req.user.id;
 
-        let userExercises = await UserExercise.findOne({ userId });
+        // 🔐 Check if exerciseId is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(exerciseId)) {
+            return res.status(400).json({ message: "Invalid exercise ID format" });
+        }
 
+        const userExercises = await UserExercise.findOne({ userId });
         if (!userExercises) {
             return res.status(404).json({ message: "User exercise record not found" });
         }
 
         // Find the exercise progress entry
-        let exerciseProgress = userExercises.progress.find(p => p.exerciseId.toString() === exerciseId);
+        let exerciseProgress = userExercises.progress.find(
+            (p) => p.exerciseId.toString() === exerciseId
+        );
 
         if (!exerciseProgress) {
             // If progress doesn't exist, create it
-            userExercises.progress.push({ exerciseId, completedReps, completedSets });
+            userExercises.progress.push({
+                exerciseId,
+                completedReps,
+                completedSets,
+                lastUpdated: new Date()
+            });
         } else {
             // Update existing progress
             exerciseProgress.completedReps = completedReps;
             exerciseProgress.completedSets = completedSets;
-            exerciseProgress.lastUpdated = Date.now();
+            exerciseProgress.lastUpdated = new Date();
         }
 
         await userExercises.save();
@@ -175,6 +187,11 @@ const assignExerciseToUser = async (req, res) => {
     try {
         const { patientId, exerciseIds } = req.body;
 
+        // Validate: Ensure exerciseIds is an array
+        if (!Array.isArray(exerciseIds)) {
+            return res.status(400).json({ message: "exerciseIds must be an array" });
+        }
+
         if (req.user.role !== "therapist") {
             return res.status(403).json({ message: "Access Denied: Only therapists can assign exercises" });
         }
@@ -185,16 +202,19 @@ const assignExerciseToUser = async (req, res) => {
             return res.status(404).json({ message: "Patient not found" });
         }
 
+        // ✅ Convert all exerciseIds to ObjectId correctly
+        const validExerciseIds = exerciseIds.map(id => new mongoose.Types.ObjectId(id));
+
         let recommendation = await TherapistRecommendation.findOne({ therapistId: req.user.id, patientId });
 
         if (!recommendation) {
             recommendation = new TherapistRecommendation({
                 therapistId: req.user.id,
                 patientId,
-                exercises: exerciseIds,
+                exercises: validExerciseIds, // 🟢 Ensure exercises are stored as ObjectId
             });
         } else {
-            recommendation.exercises = [...new Set([...recommendation.exercises, ...exerciseIds])];
+            recommendation.exercises = [...new Set([...recommendation.exercises, ...validExerciseIds])];
         }
 
         await recommendation.save();
@@ -204,6 +224,7 @@ const assignExerciseToUser = async (req, res) => {
         res.status(500).json({ message: "Server Error", error: error.message });
     }
 };
+
 
 // 🟢 Get exercises assigned to a user
 const getAssignedExercises = async (req, res) => {
