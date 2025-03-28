@@ -9,6 +9,7 @@ const exerciseRoutes = require("./routes/exerciseRoutes");
 const userExerciseRoutes = require("./routes/userExerciseRoutes");
 const userRoutes = require("./routes/userRoutes");
 const connectionRoutes = require("./routes/connectionRoutes");
+const notificationRoutes = require("./routes/notificationRoutes")
 
 
 dotenv.config();
@@ -25,5 +26,7 @@ app.use("/api/user-exercises", userExerciseRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/connect", connectionRoutes);
+app.use("/api/notifications", notificationRoutes);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

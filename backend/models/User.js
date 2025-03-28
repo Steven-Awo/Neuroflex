@@ -14,6 +14,10 @@ const UserSchema = new mongoose.Schema({
         type: String,
         enum: ["pending", "connected", "rejected", null],
         default: null
+      },
+      allowConnections: {
+        type: Boolean,
+        default: true // ✅ By default, users can receive connection requests
       }
 }, { timestamps: true });
 

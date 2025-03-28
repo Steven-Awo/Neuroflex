@@ -1,5 +1,7 @@
 const User = require("../models/User");
 const ConnectionRequest = require("../models/ConnectionRequest");
+const Notification = require("../models/Notification");
+
 const crypto = require("crypto");
 
 // ✅ Utility to hide MongoDB IDs
@@ -54,6 +56,15 @@ const sendConnectionRequest = async (req, res) => {
         });
 
         await request.save();
+
+        // ✅ Create a notification for the receiver
+        await Notification.create({
+            recipient: targetUserId,
+            sender: req.user.id,
+            type: "connection-request",
+            message: `${req.user.name} sent you a connection request`
+        });
+
         res.status(201).json({ message: "Connection request sent" });
     } catch (error) {
         res.status(500).json({ message: "Server Error", error: error.message });
@@ -130,6 +141,8 @@ const getPendingRequests = async (req, res) => {
         res.status(500).json({ message: "Server Error", error: err.message });
     }
 };
+
+
 
 module.exports = {
     searchUsers,

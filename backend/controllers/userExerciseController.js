@@ -71,9 +71,27 @@ const updateProgress = async (req, res) => {
     }
 };
 
+// 🔄 Toggle allowConnections
+const toggleConnectionPreference = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        user.allowConnections = !user.allowConnections;
+        await user.save();
+
+        res.status(200).json({
+            message: `Connection requests are now ${user.allowConnections ? "enabled" : "disabled"}`,
+            allowConnections: user.allowConnections
+        });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};
+
+
 // ✅ **Export the functions correctly**
 module.exports = {
     addUserExercise,
     getUserExercises,
-    updateProgress
+    updateProgress,
+    toggleConnectionPreference
 };

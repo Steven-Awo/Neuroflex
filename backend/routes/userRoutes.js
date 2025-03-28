@@ -1,6 +1,6 @@
 const express = require("express");
 const { protect, authorizeRoles, therapistOnly } = require("../middleware/authMiddleware"); // ✅ Ensure this import is correct!
-
+const { toggleConnectionPreference } = require("../controllers/userController");
 const { getTherapistPatients, getTherapistDashboard } = require("../controllers/therapistController");
 
 const router = express.Router();
@@ -29,4 +29,10 @@ router.get("/admin", protect, authorizeRoles("admin"), (req, res) => {
 router.get("/therapist/patients", protect, therapistOnly, getTherapistPatients);
 
 
+// ======================= USER =============================
+
+router.patch("/toggle-connections", protect, toggleConnectionPreference);
+
+
+// =============================================================
 module.exports = router;
