@@ -5,6 +5,16 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ["admin", "user", "therapist"], default: "user" }, // Added therapist role
+    therapist: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null // Null if user is not connected yet
+      },
+      connectionStatus: {
+        type: String,
+        enum: ["pending", "connected", "rejected", null],
+        default: null
+      }
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);

@@ -8,6 +8,8 @@ const authRoutes = require("./routes/authRoutes");
 const exerciseRoutes = require("./routes/exerciseRoutes");
 const userExerciseRoutes = require("./routes/userExerciseRoutes");
 const userRoutes = require("./routes/userRoutes");
+const connectionRoutes = require("./routes/connectionRoutes");
+
 
 dotenv.config();
 connectDB();
@@ -21,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/exercises", exerciseRoutes);
 app.use("/api/user-exercises", userExerciseRoutes);
 app.use("/api/users", userRoutes);
-
+app.use("/api/connections", connectionRoutes);
+app.use("/api/connect", connectionRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
