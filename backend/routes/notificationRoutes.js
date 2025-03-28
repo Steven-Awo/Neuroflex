@@ -13,12 +13,12 @@ const {
 router.get("/", protect, getNotifications);
 
 // ✅ Mark a specific notification as read
-router.put("/read/:id", protect, markNotificationRead);
+router.put("/read/:notificationId", protect, markNotificationRead);
 
 // ✅ Mark ALL notifications as read
 router.put("/read-all", protect, markAllAsRead);
 
 // 🗑️ Delete a specific notification
-router.delete("/:id", protect, deleteNotification);
+router.delete("/:notificationId", protect, deleteNotification);
 
 module.exports = router;
