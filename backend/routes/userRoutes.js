@@ -1,5 +1,7 @@
 const express = require("express");
-const { protect, authorizeRoles } = require("../middleware/authMiddleware"); // ✅ Ensure this import is correct!
+const { protect, authorizeRoles, therapistOnly } = require("../middleware/authMiddleware"); // ✅ Ensure this import is correct!
+
+const { getTherapistPatients } = require("../controllers/therapistController");
 
 const router = express.Router();
 
@@ -16,5 +18,11 @@ router.get("/therapist/dashboard", protect, authorizeRoles("therapist"), (req, r
 router.get("/admin", protect, authorizeRoles("admin"), (req, res) => {
     res.json({ message: "Welcome Admin, you have full access!" });
 });
+
+
+// ======================================== therapist to paitient ===========
+
+router.get("/therapist/patients", protect, therapistOnly, getTherapistPatients);
+
 
 module.exports = router;

@@ -19,7 +19,13 @@ const createExercise = async (req, res) => {
         });
 
         await newExercise.save();
-        res.status(201).json({ message: "Exercise created successfully", exercise: newExercise });
+        res.status(201).json({
+            status: "success",
+            message: "Exercise created successfully",
+            data: {
+              exercise: newExercise
+            }
+          });
     } catch (error) {
         res.status(500).json({ message: "Server Error", error: error.message });
     }
